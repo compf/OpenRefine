@@ -54,16 +54,7 @@ public class ScatterplotDrawingRowVisitor implements RowVisitor, RecordVisitor {
 
     int col_x;
     int col_y;
-    int dim_x;
-    int dim_y;
-
-    double l;
-    double dot;
-
-    double min_x;
-    double max_x;
-    double min_y;
-    double max_y;
+    ScatterplotConfiguration configuration;
 
     BufferedImage image;
     Graphics2D g2;
@@ -75,14 +66,7 @@ public class ScatterplotDrawingRowVisitor implements RowVisitor, RecordVisitor {
             int size, int dim_x, int dim_y, int rotation, double dot, Color color) {
         this.col_x = col_x;
         this.col_y = col_y;
-        this.min_x = min_x;
-        this.min_y = min_y;
-        this.max_x = max_x;
-        this.max_y = max_y;
-        this.dot = dot;
-        this.dim_x = dim_x;
-        this.dim_y = dim_y;
-
+        this.configuration = new ScatterplotConfiguration(min_x, max_x, min_y, max_y, dim_x, dim_y, dot);
         l = size;
         r = ScatterplotFacet.createRotationMatrix(rotation, l);
 
@@ -90,6 +74,13 @@ public class ScatterplotDrawingRowVisitor implements RowVisitor, RecordVisitor {
         g2 = (Graphics2D) image.getGraphics();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setStroke(new BasicStroke(1.0f));
+
+        AffineTransform t = AffineTransform.getTranslateInstance(0, l);
+        t.scale(1, -1);
+
+        g2.setTransform(t);
+        g2.setColor(color);
+        g2.setPaint(color);
 
         AffineTransform t = AffineTransform.getTranslateInstance(0, l);
         t.scale(1, -1);
@@ -139,9 +130,9 @@ public class ScatterplotDrawingRowVisitor implements RowVisitor, RecordVisitor {
             Point2D.Double p = new Point2D.Double(xv, yv);
 
             p = ScatterplotFacet.translateCoordinates(
-                    p, min_x, max_x, min_y, max_y, dim_x, dim_y, l, r);
+                    p, configuration.getMinX(), configuration.getMaxX(), configuration.getMinY(), configuration.getMaxY(), configuration.getDimX(), configuration.getDimY(), l, r);
 
-            g2.fill(new Rectangle2D.Double(p.x - dot / 2, p.y - dot / 2, dot, dot));
+            g2.fill(new Rectangle2D.Double(p.x - configuration.getDot() / 2, p.y - configuration.getDot() / 2, configuration.getDot(), configuration.getDot()));
         }
 
         return false;

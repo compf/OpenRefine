@@ -96,9 +96,7 @@ public class ScatterplotFacet implements Facet {
         @JsonProperty(SIZE)
         protected int size;
         @JsonIgnore
-        protected int dim_x;
-        @JsonIgnore
-        protected int dim_y;
+        protected ScatterplotConfiguration configuration;
         @JsonIgnore
         protected String rotation_str;
         @JsonIgnore
@@ -106,9 +104,6 @@ public class ScatterplotFacet implements Facet {
 
         @JsonIgnore
         protected double l = 1.;
-        @JsonProperty(DOT)
-        protected double dot;
-
         @JsonIgnore
         protected String color_str = "000000";
 
@@ -134,12 +129,12 @@ public class ScatterplotFacet implements Facet {
 
         @JsonProperty(DIM_X)
         public String getDimX() {
-            return dim_x == LIN ? "lin" : "log";
+            return configuration.getDimXString();
         }
 
         @JsonProperty(DIM_Y)
         public String getDimY() {
-            return dim_y == LIN ? "lin" : "log";
+            return configuration.getDimYString();
         }
 
         @Override
@@ -258,22 +253,22 @@ public class ScatterplotFacet implements Facet {
 
     @JsonProperty(DIM_X)
     public int getDimX() {
-        return config.dim_x;
+        return config.getDimX();
     }
 
     @JsonProperty(DIM_Y)
     public int getDimY() {
-        return config.dim_y;
+        return config.getDimY();
     }
 
     @JsonProperty(DOT)
     public double getDot() {
-        return config.dot;
+        return config.getDot();
     }
 
     @JsonProperty(ROTATION)
     public double getRotation() {
-        return config.rotation;
+        return config.getRotation();
     }
 
     @JsonProperty(COLOR)
@@ -339,12 +334,12 @@ public class ScatterplotFacet implements Facet {
     }
 
     public void initializeFromConfig(ScatterplotFacetConfig configuration, Project project) {
-        config = configuration;
+        this.configuration = new ScatterplotConfiguration(configuration);
 
-        t = createRotationMatrix(config.rotation, config.l);
+        t = createRotationMatrix(this.configuration.getRotation(), this.configuration.getL());
 
-        if (config.columnName_x.length() > 0) {
-            Column x_column = project.columnModel.getColumnByName(config.columnName_x);
+        if (configuration.columnName_x.length() > 0) {
+            Column x_column = project.columnModel.getColumnByName(configuration.columnName_x);
             if (x_column != null) {
                 columnIndex_x = x_column.getCellIndex();
 
@@ -393,17 +388,17 @@ public class ScatterplotFacet implements Facet {
                 eval_x != null && errorMessage_x == null &&
                 eval_y != null && errorMessage_y == null) {
             return new DualExpressionsNumberComparisonRowFilter(
-                    eval_x, config.columnName_x, columnIndex_x, eval_y, config.columnName_y, columnIndex_y) {
+                    eval_x, configuration.columnName_x, columnIndex_x, eval_y, configuration.columnName_y, columnIndex_y) {
 
-                double from_x_pixels = config.from_x * config.l;
-                double to_x_pixels = config.to_x * config.l;
-                double from_y_pixels = config.from_y * config.l;
-                double to_y_pixels = config.to_y * config.l;
+                double from_x_pixels = configuration.getFromX() * configuration.getL();
+                double to_x_pixels = configuration.getToX() * configuration.getL();
+                double from_y_pixels = configuration.getFromY() * configuration.getL();
+                double to_y_pixels = configuration.getToY() * configuration.getL();
 
                 @Override
                 protected boolean checkValues(double x, double y) {
                     Point2D.Double p = new Point2D.Double(x, y);
-                    p = translateCoordinates(p, min_x, max_x, min_y, max_y, config.dim_x, config.dim_y, config.l, t);
+                    p = translateCoordinates(p, configuration.getMinX(), configuration.getMaxX(), configuration.getMinY(), configuration.getMaxY(), configuration.getDimX(), configuration.getDimY(), configuration.getL(), t);
                     return p.x >= from_x_pixels && p.x <= to_x_pixels && p.y >= from_y_pixels && p.y <= to_y_pixels;
                 };
             };
@@ -432,8 +427,7 @@ public class ScatterplotFacet implements Facet {
             if (IMAGE_URI) {
                 if (index_x.isNumeric() && index_y.isNumeric()) {
                     ScatterplotDrawingRowVisitor drawer = new ScatterplotDrawingRowVisitor(
-                            columnIndex_x, columnIndex_y, min_x, max_x, min_y, max_y,
-                            config.size, config.dim_x, config.dim_y, config.rotation, config.dot, config.getColor());
+                            columnIndex_x, columnIndex_y, configuration);
                     filteredRows.accept(project, drawer);
 
                     try {
@@ -462,8 +456,7 @@ public class ScatterplotFacet implements Facet {
             if (IMAGE_URI) {
                 if (index_x.isNumeric() && index_y.isNumeric()) {
                     ScatterplotDrawingRowVisitor drawer = new ScatterplotDrawingRowVisitor(
-                            columnIndex_x, columnIndex_y, min_x, max_x, min_y, max_y,
-                            config.size, config.dim_x, config.dim_y, config.rotation, config.dot, config.getColor());
+                            columnIndex_x, columnIndex_y, configuration);
                     filteredRecords.accept(project, drawer);
 
                     try {
